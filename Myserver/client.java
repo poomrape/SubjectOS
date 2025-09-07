@@ -1,9 +1,11 @@
 import java.net.*;
 import java.io.*;
+import java.util.concurrent.TimeUnit;
 
 
 public class client{
 	public static void main(String[] args){
+		while(true){
 		try{
 			Socket sock =new Socket("127.0.0.1",6100);
 
@@ -21,6 +23,12 @@ public class client{
 		}
 		catch(IOException ioe){
 			System.err.println(ioe);
+		}
+		 try {
+ 		   TimeUnit.SECONDS.sleep(1); // Pause for 5 seconds
+		} catch (InterruptedException e) {
+		    Thread.currentThread().interrupt();
+		} 
 		}
 	}
 }
