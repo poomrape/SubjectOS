@@ -1,18 +1,16 @@
 import java.awt.image.BufferedImage;
-import java.awt.image.BufferedImageFilter;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
-import java.util.InputMismatchException;
 
 import javax.imageio.ImageIO;
-
+import java.awt.Graphics ;
 class effdiff{
  
 	public static void main(String[] args){
-		BufferedImage inputImage = null;
+		BufferedImage inputImage =null;
+		File inputfFile = new File("grayscale2.png");
 		try{
-			File inputfFile = new File("grayscale2.png");
 
 			inputImage =ImageIO.read(inputfFile);
 
@@ -25,10 +23,16 @@ class effdiff{
 			    System.out.println("Image is already grayscale format \n");
 				System.out.println("Image load success");
 			}else{
-				System.out.println(inputImage.getType());
 				System.out.println("Image is not alraedy grayscale format \n");
-			}
+				System.out.println(inputImage.getType());
+				BufferedImage image = new BufferedImage(inputImage.getWidth(),inputImage.getHeight(), BufferedImage.TYPE_BYTE_GRAY);  
+				Graphics g = image.getGraphics();  
+				g.drawImage(inputImage, 0, 0, null);  
+				g.dispose();  
+				inputImage = image;
+				System.out.println(inputImage.getType());
 
+			}
 
 		}catch(IOException e) {
 			 System.err.println("Error loading image: " + e.getMessage());
