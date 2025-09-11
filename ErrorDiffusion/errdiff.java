@@ -1,4 +1,5 @@
 import java.awt.image.BufferedImage;
+import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
@@ -47,16 +48,37 @@ class effdiff{
 			for(int j=0;j< width;j++){
 				if(wr.getSample(j,i,0) >128 ){
 					image[i][j]	= (byte)1;
+					System.out.println("white");
 					
 				}else{
 					image[i][j] =(byte)0;
+					System.out.println("Black");
 				}
-		/* 	error[i][j] = wr.getSample(i, j, 0) - (255*image[i][j]); */
+				error[i][j] =(byte) ( image[i][j] == (byte)1 ? wr.getSample(j, i, 0)-255 : wr.getSample(j, i, 0)-0 ); 
+				System.out.println(error[i][j]);
+			}
+		}
+		BufferedImage newImage = new BufferedImage(width, height,BufferedImage.TYPE_BYTE_GRAY);
+		for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+
+                newImage.getRaster().setSample(x, y, 0, image[y][x]*255);
+
+            }
+        }
+		try {
+            inputfFile = new File( "GFG.png");
+            ImageIO.write(newImage, "png", inputfFile);
+        } catch (IOException e) {
+            System.out.println(e);
 		}
 
 
 
-		}
+		
+
 
 
 
