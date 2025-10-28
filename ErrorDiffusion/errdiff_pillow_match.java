@@ -1,7 +1,13 @@
 
 import java.awt.image.*;
 import javax.imageio.ImageIO;
+
+import org.knowm.xchart.SwingWrapper;
+import org.knowm.xchart.XYChart;
+import org.knowm.xchart.XYChartBuilder;
+
 import java.io.File;
+import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -11,6 +17,8 @@ import java.io.IOException;
 
 
 public class errdiff_pillow_match { 
+    static ArrayList<Long> sequential_times = new ArrayList<>();
+    static ArrayList<Long> parallel_times = new ArrayList<>();
     public static  byte[]   ErrordiffuseSequential(BufferedImage grayImage, BufferedImage outputImage, int width, int height) {
         int[] pixelBuffer = new int[width * height];
         byte[] outputPixels = new byte[width * height];
@@ -49,7 +57,8 @@ public class errdiff_pillow_match {
             }
         }
         long end_time =  System.currentTimeMillis();
-            System.out.println("Sequential time : " + (end_time - start_time) + " ms");
+           // System.out.println("Sequential time : " + (end_time - start_time) + " ms");
+            sequential_times.add(end_time - start_time);
         return outputPixels;
     }
 
@@ -64,20 +73,20 @@ public class errdiff_pillow_match {
                 pixelBuffer[y * width + x] = buffer[y * width + x] & 0xFF;
             }
         }
-        int numThreads =  2;
+        int numThreads =  6;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         final CountDownLatch latch = new CountDownLatch(numThreads);
         int rowsPerThread = (height + numThreads - 1) / numThreads; // Ceiling division
         long start_time =  System.currentTimeMillis();
         for (int t = 0; t < numThreads; t++) {
-            final int startwidth = t * rowsPerThread;
-            final int endwidth = Math.min(startwidth + rowsPerThread, height);
-            if(startwidth >= endwidth){
+            final int startrow = t * rowsPerThread;
+            final int endrow = Math.min(startrow + rowsPerThread, height);
+            if(startrow >= endrow){
                 latch.countDown();
                 continue;
             }
             executor.submit(() -> {
-                for (int y = startwidth; y < endwidth; y++) {
+                for (int y = startrow; y < endrow; y++) {
                     if(y>0){
                         while(rowcomplete.get(y-1) ==0){
                             //busy wait
@@ -115,74 +124,112 @@ public class errdiff_pillow_match {
             });
         }
         latch.await();  
+        
         executor.shutdown();
         long end_time =  System.currentTimeMillis();
-            System.out.println("Parallel time : " + (end_time - start_time) + " ms");
+            //System.out.println("Parallel time : " + (end_time - start_time) + " ms");
+            parallel_times.add(end_time - start_time);
+
             return outputPixels;
     }
 
-    public static void main(String[] args) throws InterruptedException {
-        try {
-            BufferedImage src = ImageIO.read(new File("world-grayscale.png")); // Assume this could be RGB or Grayscale
+    public static BufferedImage convertgrayscale(String filepath) throws IOException {
+        try{
+        BufferedImage originalImage = ImageIO.read(new File(filepath)); // Assume this could be RGB or Grayscale
 
-            int width = src.getWidth();
-            int height = src.getHeight();
+            int width = originalImage.getWidth();
+            int height = originalImage.getHeight();
 
             // Create a buffer to hold grayscale int values, explicitly converting if needed
             BufferedImage grayImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-            byte[]buffer = ((DataBufferByte) grayImage.getRaster().getDataBuffer()).getData();
+            byte[]buffergraypixel = ((DataBufferByte) grayImage.getRaster().getDataBuffer()).getData();
             
             // If src is already grayscale, this effectively just copies the values.
             // If src is RGB, it converts using a common luminance formula.
-            if(src.getType() != BufferedImage.TYPE_BYTE_GRAY) {
+            if(originalImage.getType() != BufferedImage.TYPE_BYTE_GRAY) {
 
                 int pixelcount =0;
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
-                    int rgb = src.getRGB(x, y);
+                    int rgb = originalImage.getRGB(x, y);
                     int r = (rgb >> 16) & 0xFF; // Red component
                     int g = (rgb >> 8) & 0xFF;  // Green component
                     int b = rgb & 0xFF;   // Blue component
                     // Luminance formula (commonly used by Pillow for 'L' mode)
                     int grayValue = (r*19595 + g*38470 + b*7471 +32768 ) / 65536; // Equivalent to 0.299*r + 0.587*g + 0.114*b
-                    buffer[pixelcount] = (byte) grayValue;
+                    buffergraypixel[pixelcount] = (byte) grayValue;
                     pixelcount++;
                 }
             }
+            return grayImage;
             }else{
-                grayImage.getRaster().setDataElements(0, 0, width, height, src.getRaster().getDataElements(0, 0, width, height, null));
+                return originalImage;
             }
+        } catch (IOException e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+        return null;
+    }
 
+    public static void main(String[] args) throws InterruptedException, IOException {
+
+            BufferedImage imagepro = convertgrayscale("pngegg.png");
+            int width = imagepro.getWidth();
+            int height =imagepro.getHeight();
             // saved Sequential Version
-            /*byte[] outputPixels = ErrordiffuseSequential(grayImage, null, width, height);// Call the sequential version
+            /*byte[] outputPixels = ErrordiffuseSequential(imagepro, null, width, height);// Call the sequential version
             BufferedImage ditheredImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
             byte[] ditheredData = ((DataBufferByte) ditheredImage.getRaster().getDataBuffer()).getData();
             System.arraycopy(outputPixels, 0, ditheredData, 0, outputPixels.length);
             File outputfile = new File("outputsequential.png");
             ImageIO.write(ditheredImage, "png", outputfile);
-            System.out.println("Dithering complete. Output saved to outputsequential.png");*/
-            for  (int i=0;i<500;i++){
-                ErrordiffuseSequential(grayImage, null, width, height);// Call the sequential version
-            }
-            for  (int i=0;i<500;i++){
-                ErrordiffuseParallel(grayImage, null, width, height);// Call the parallel version
-            }
-            /*byte[] outputPixelsParallel = ErrordiffuseParallel(grayImage, null, width, height);// Call the parallel version
+            System.out.println("Dithering complete. Output saved to outputsequential.png");
+
+            //Saved Parallel Version
+            byte[] outputPixelsParallel = ErrordiffuseParallel(imagepro, null, width, height);// Call the parallel version
             BufferedImage ditheredImageParallel = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
             byte[] ditheredDataParallel = ((DataBufferByte) ditheredImageParallel.getRaster().getDataBuffer()).getData();
             System.arraycopy(outputPixelsParallel, 0, ditheredDataParallel, 0, outputPixelsParallel.length);
             File outputfileParallel = new File("outputparallel.png");
             ImageIO.write(ditheredImageParallel, "png", outputfileParallel);
-            System.out.println("Dithering complete. Output saved to outputparallel.png");
-            */
+            System.out.println("Dithering complete. Output saved to outputparallel.png");*/
+            
 
+            for  (int i=0;i<70;i++){
+                ErrordiffuseSequential(imagepro, null, width, height);// Call the sequential version
+            }
+            for  (int i=0;i<70;i++){
+                ErrordiffuseParallel(imagepro, null, width, height);// Call the parallel version
+            }
 
-        
-                    
-
-        } catch (IOException e) {
-            System.err.println("Error: " + e.getMessage());
+            long sum_sequential_times = 0;
+            long sum_parallel_times = 0;
+            for (int i=2;i < sequential_times.size();i++){
+                sum_sequential_times+=sequential_times.get(i);
+                sum_parallel_times+=parallel_times.get(i);
+                
+            }
+            System.out.println("Mean sequential time:"+sum_sequential_times/sequential_times.size());
+            System.out.println("Mean parallel time:"+sum_parallel_times/parallel_times.size());      
+            // Plotting the times
+            XYChart chart = new XYChartBuilder()
+                .width(800)
+                .height(500)
+                .title("Error Diffusion Execution Time Comparison")
+                .xAxisTitle("Run")
+                .yAxisTitle("Time (ms)")
+                .build();
+        ArrayList<Integer> runIndices = new ArrayList<>();
+        for (int i = 2; i < sequential_times.size(); i++) {
+            runIndices.add(i + 1);
         }
+
+        chart.addSeries("Sequential", runIndices, sequential_times.subList(2,sequential_times.size()));
+        chart.addSeries("Parallel", runIndices, parallel_times.subList(2,parallel_times.size()));
+
+        // แสดงกราฟ
+        new SwingWrapper<>(chart).displayChart();
+
         
 
 
