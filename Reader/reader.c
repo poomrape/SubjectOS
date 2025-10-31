@@ -1,146 +1,92 @@
-// WARNING: I don't even know what the teacher want us to code...
-// this is me guessing what he wants us to do...
-
 #include <stdio.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
-#include <time.h>
 #include <stdlib.h>
-#include <stdbool.h>
+#include <time.h>
 
 #define READER_COUNT 990
 #define WRITER_COUNT 10
-#define TOTAL_THREADS READER_COUNT + WRITER_COUNT
+#define TOTAL_THREADS 1000
 
 int x = 0;
-
-sem_t w_mutex;
-sem_t r_mutex;
-sem_t mutex;
 int read_count = 0;
 
+sem_t r_mutex;  // lock for readers and writers
+sem_t mutex;    // protect read_count
 
-bool in_array(int *arr, int num, int size) {
-	for (size_t i = 0; i < size; i++) {
-		if (arr[i] == num) {
-			return true;
-		}
-	}
-	return false;
+void *reader(void *arg) {
+    sem_wait(&mutex);
+    read_count++;
+    if (read_count == 1)
+        sem_wait(&r_mutex);
+    sem_post(&mutex);
+
+    // critical section
+    sleep(1);
+    printf("Reader reading x = %d\n", x);
+
+    sem_wait(&mutex);
+    read_count--;
+    if (read_count == 0)
+        sem_post(&r_mutex);
+    sem_post(&mutex);
+
+    return NULL;
 }
-
-
-int compare( const void* a, const void* b)
-{ 
-	// to implement sorting, we must invent the universe...
-	 int int_a = * ( (int*) a );
-	 int int_b = * ( (int*) b );
-	 
-	 if ( int_a == int_b ) return 0;
-	 else if ( int_a < int_b ) return -1;
-	 else return 1;
-}
-
-
-void sample(int *arr, int count, int max) {
-	int random;
-	srand(time(NULL));
-	for (int i = 0; i < count; i++) {
-		do { // Random and make sure it isn't duplicated number.
-			random = rand() % max;
-		} while (in_array(arr, random, count));
-		arr[i] = random;
-	}
-	qsort(arr, count, sizeof(int), compare);
-}
-
-
-void wait_a_sec() {
-	time_t start, now;
-	time(&start);
-	time(&now);
-	
-	// what in the fuck did i cook
-	for (;now < start + 1; time(&now)) {}
-}
-
 
 void *writer(void *arg) {
-	// writer thread id
-	int self = *((int *) arg);
-	
-	sem_wait(&w_mutex);
-	
-	// Critical section
-	wait_a_sec();
-	++x;
-	printf("no = %-3i x = %i\n", self, x);
-	// ----------------
+    int id = *((int *) arg);
+    free(arg);
 
-	sem_post(&w_mutex);
+    sem_wait(&r_mutex);
+    sleep(1);
+    x++;
+    printf("Writer %d updated x = %d\n", id, x);
+    sem_post(&r_mutex);
+
+    return NULL;
 }
-
-
-void *reader() {
-	// Check if writer is writing
-	sem_wait(&w_mutex);
-	sem_post(&w_mutex);
-	
-	sem_wait(&mutex);
-	++read_count;
-	if (read_count == 1) {sem_wait(&r_mutex);}
-	sem_post(&mutex);
-
-	// Critical section
-	wait_a_sec();
-	// Pretend we're reading value
-	// ----------------
-
-	sem_wait(&mutex);
-	--read_count;
-	if (read_count == 0) {sem_post(&r_mutex);}
-	sem_post(&mutex);
-}
-
 
 int main() {
-	pthread_t threads[TOTAL_THREADS];
-	time_t start_t, end_t;
-	int *ptr; // for passing thread id
-	
-	sem_init(&w_mutex, 0, 1);
-	sem_init(&r_mutex, 0, 1);
-	sem_init(&mutex, 0, 1);
+    pthread_t threads[TOTAL_THREADS];
+    int writer_indices[WRITER_COUNT];
 
-	// random writers
-	int random_n[WRITER_COUNT];
-	sample(random_n, WRITER_COUNT, TOTAL_THREADS);
-	int curr = 0;
-	
-	// Timer
-	time(&start_t);	
+    srand(time(NULL));
 
-	for (int i = 0; i < TOTAL_THREADS; i++) {
-		if (i == random_n[curr]) {
-			pthread_create(&threads[i], NULL, writer, &random_n[curr]);
-			++curr;
-		} else {
-			pthread_create(&threads[i], NULL, reader, NULL);
-		}
-	}
-	
-	
-	for (int i = 0; i < TOTAL_THREADS; i++) {
-		pthread_join(threads[i], NULL);
-	}
+    // random writer positions
+    for (int i = 0; i < WRITER_COUNT; i++) {
+        int r;
+        do {
+            r = rand() % TOTAL_THREADS;
+            for (int j = 0; j < i; j++)
+                if (writer_indices[j] == r)
+                    r = -1;
+        } while (r == -1);
+        writer_indices[i] = r;
+    }
 
-	time(&end_t);
+    sem_init(&r_mutex, 0, 1);
+    sem_init(&mutex, 0, 1);
 
-	printf("Finished in %li seconds.\n", end_t - start_t);
+    int curr = 0;
+    for (int i = 0; i < TOTAL_THREADS; i++) {
+        int *id = malloc(sizeof(int));
+        *id = i;
+        if (curr < WRITER_COUNT && i == writer_indices[curr]) {
+            pthread_create(&threads[i], NULL, writer, id);
+            curr++;
+        } else {
+            pthread_create(&threads[i], NULL, reader, NULL);
+            free(id);
+        }
+    }
 
-	sem_destroy(&w_mutex);
-	sem_destroy(&r_mutex);
-	sem_destroy(&mutex);
-	return 0;
+    for (int i = 0; i < TOTAL_THREADS; i++)
+        pthread_join(threads[i], NULL);
+
+    sem_destroy(&r_mutex);
+    sem_destroy(&mutex);
+    printf("Final x = %d\n", x);
+    return 0;
 }
