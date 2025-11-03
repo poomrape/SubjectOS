@@ -73,7 +73,7 @@ public class errdiff_pillow_match {
                 pixelBuffer[y * width + x] = buffer[y * width + x] & 0xFF;
             }
         }
-        int numThreads =  2;
+        int numThreads =  8;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         final CountDownLatch latch = new CountDownLatch(numThreads);
         int rowsPerThread = (height + numThreads - 1) / numThreads; // Ceiling division
@@ -176,8 +176,7 @@ public class errdiff_pillow_match {
             BufferedImage imagepro = convertgrayscale("world-grayscale.png");
             int width = imagepro.getWidth();
             int height =imagepro.getHeight();
-            // saved Sequential Version
-            /*byte[] outputPixels = ErrordiffuseSequential(imagepro, null, width, height);// Call the sequential version
+            byte[] outputPixels = ErrordiffuseSequential(imagepro, null, width, height);// Call the sequential version
             BufferedImage ditheredImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
             byte[] ditheredData = ((DataBufferByte) ditheredImage.getRaster().getDataBuffer()).getData();
             System.arraycopy(outputPixels, 0, ditheredData, 0, outputPixels.length);
@@ -185,26 +184,25 @@ public class errdiff_pillow_match {
             ImageIO.write(ditheredImage, "png", outputfile);
             System.out.println("Dithering complete. Output saved to outputsequential.png");
 
-            //Saved Parallel Version
             byte[] outputPixelsParallel = ErrordiffuseParallel(imagepro, null, width, height);// Call the parallel version
             BufferedImage ditheredImageParallel = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
             byte[] ditheredDataParallel = ((DataBufferByte) ditheredImageParallel.getRaster().getDataBuffer()).getData();
             System.arraycopy(outputPixelsParallel, 0, ditheredDataParallel, 0, outputPixelsParallel.length);
             File outputfileParallel = new File("outputparallel.png");
             ImageIO.write(ditheredImageParallel, "png", outputfileParallel);
-            System.out.println("Dithering complete. Output saved to outputparallel.png");*/
+            System.out.println("Dithering complete. Output saved to outputparallel.png");
             
-
-            for  (int i=0;i<70;i++){
+        /* 
+            for  (int i=0;i<100;i++){
                 ErrordiffuseSequential(imagepro, null, width, height);// Call the sequential version
             }
-            for  (int i=0;i<70;i++){
+            for  (int i=0;i<100;i++){
                 ErrordiffuseParallel(imagepro, null, width, height);// Call the parallel version
             }
 
             long sum_sequential_times = 0;
             long sum_parallel_times = 0;
-            for (int i=2;i < sequential_times.size();i++){
+            for (int i=0;i < sequential_times.size();i++){
                 sum_sequential_times+=sequential_times.get(i);
                 sum_parallel_times+=parallel_times.get(i);
                 
@@ -230,7 +228,7 @@ public class errdiff_pillow_match {
         // แสดงกราฟ
         new SwingWrapper<>(chart).displayChart();
 
-        
+        */
 
 
     }

@@ -14,17 +14,18 @@ int read_count = 0;
 
 sem_t r_mutex;  // lock for readers and writers
 sem_t mutex;    // protect read_count
+sem_t turn;
 
 void *reader(void *arg) {
+    sem_wait(&turn);
     sem_wait(&mutex);
     read_count++;
     if (read_count == 1)
         sem_wait(&r_mutex);
     sem_post(&mutex);
-
+    sem_post(&turn);
     // critical section
     sleep(1);
-
 
     sem_wait(&mutex);
     read_count--;
@@ -38,30 +39,16 @@ void *reader(void *arg) {
 void *writer(void *arg) {
     int id = *((int *) arg);
     free(arg);
-
+    sem_wait(&turn);
     sem_wait(&r_mutex);
+
     sleep(1);
     x++;
     printf("Writer %d updated x = %d\n", id, x);
     sem_post(&r_mutex);
-
+    sem_post(&turn);
     return NULL;
 }
-void delay(int number_of_seconds)
-{
-	// Converting time into milli_seconds
-	int milli_seconds = 1000 * number_of_seconds;
-
-	// Storing start time
-	clock_t start_time = clock();
-
-	// looping till required time is not achieved
-	while (clock() < start_time + milli_seconds)
-		;
-}
-
-
-
 int comp(const void *a, const void *b) {
     return (*(int *)a - *(int *)b);
 }
@@ -89,7 +76,7 @@ int main() {
 
     sem_init(&r_mutex, 0, 1);
     sem_init(&mutex, 0, 1);
-
+    sem_init(&turn, 0, 1);
     int curr = 0;
     qsort(writer_indices, WRITER_COUNT, sizeof(int), comp);
     time(&start_t);	
@@ -102,7 +89,6 @@ int main() {
             printf("Created writer thread at index %d\n", i);
         } else {
             pthread_create(&threads[i], NULL, reader, NULL);
-            free(id);
         }
     }
 
@@ -113,6 +99,7 @@ int main() {
 	printf("Finished in %li seconds.\n", end_t - start_t);
     sem_destroy(&r_mutex);
     sem_destroy(&mutex);
+    sem_destroy(&turn);
     printf("Final x = %d\n", x);
     return 0;
 }
