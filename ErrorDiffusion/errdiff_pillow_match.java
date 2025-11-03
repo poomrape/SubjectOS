@@ -73,7 +73,7 @@ public class errdiff_pillow_match {
                 pixelBuffer[y * width + x] = buffer[y * width + x] & 0xFF;
             }
         }
-        int numThreads =  6;
+        int numThreads =  2;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         final CountDownLatch latch = new CountDownLatch(numThreads);
         int rowsPerThread = (height + numThreads - 1) / numThreads; // Ceiling division
@@ -173,7 +173,7 @@ public class errdiff_pillow_match {
 
     public static void main(String[] args) throws InterruptedException, IOException {
 
-            BufferedImage imagepro = convertgrayscale("pngegg.png");
+            BufferedImage imagepro = convertgrayscale("world-grayscale.png");
             int width = imagepro.getWidth();
             int height =imagepro.getHeight();
             // saved Sequential Version
