@@ -1,22 +1,32 @@
+import java.io.*;
+import java.net.*;
 
-import java.net.ServerSocket;
+class MyThread extends Thread {
+    private Socket client;
 
 
+    public MyThread(Socket client) {
+        this.client = client;
+        }
 
-class MyThread extends Thread{
-    ServerSocket Sock ;
+    @Override
+    public void run() {
+        System.out.println("Thread started "+ Thread.currentThread().getName());
+        try (
+            BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            PrintWriter out = new PrintWriter(client.getOutputStream(), true);
+        ) {
+            while(true){
+            out.println("Server time: " + new java.util.Date().toString());
+            try {
+               Thread.sleep(1000); 
+            } catch (InterruptedException e) {
+               Thread.currentThread().interrupt();
+            }
+            }
 
-    MyThread(ServerSocket Sock_n){
-        this.Sock =Sock_n;
+        } catch (IOException e) {
+            System.err.println("Error with Client #"  + ": " + e.getMessage());
+        }
     }
-
-    public void run(){
-        Dataserver proc =new Dataserver();
-        System.out.println("Myserver Thread Running");
-        System.out.println("Current thread name: " + Thread.currentThread().getName());
-
-        proc.opensock(Sock);
-    }
-    
 }
-

@@ -1,34 +1,24 @@
-import java.net.*;
 import java.io.*;
-import java.util.concurrent.TimeUnit;
+import java.net.*;
 
+public class client {
+    public static void main(String[] args) {
+        try (Socket sock = new Socket("127.0.0.1", 6100)) {
+            System.out.println("Connected to server.");
 
-public class client{
-	public static void main(String[] args){
-		while(true){
-		try{
-			Socket sock =new Socket("127.0.0.1",6100);
+            // เตรียมอ่านข้อมูลจาก server
+            BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
 
-
-			InputStream in =sock.getInputStream();
-			BufferedReader bin =new BufferedReader(new InputStreamReader(in));
-
-			String line;
-			while((line =bin.readLine()) != null){
-				System.out.println(line);
-
-			}
-			sock.close();
-
+            String line;
+			while(true){
+            while ((line = in.readLine()) != null) {
+                System.out.println(line);
+            }
 		}
-		catch(IOException ioe){
-			System.err.println(ioe);
-		}
-		 try {
- 		   TimeUnit.SECONDS.sleep(1); // Pause for 5 seconds
-		} catch (InterruptedException e) {
-		    Thread.currentThread().interrupt();
-		} 
-		}
-	}
+		}catch (IOException ioe) {
+            System.err.println("Client error: " + ioe.getMessage());
+        }
+    }
 }
+
+

@@ -1,25 +1,22 @@
-import java.net.ServerSocket;
-
 import java.io.*;
+import java.net.*;
 
 public class serverthr {
+    public static void main(String[] args) throws InterruptedException {
+        try (ServerSocket sock = new ServerSocket(6100)) {
+            System.out.println("Server started. Waiting for clients...");
 
-    public static void main(String[] args){
-        try{
-            ServerSocket sock =new ServerSocket(6100);
-            MyThread t1 =new MyThread(sock);
-            MyThread t2 =new MyThread(sock);
-            MyThread t3 =new MyThread(sock);
-            MyThread t4 =new MyThread(sock);
+            while (true) {
+                // รอรับการเชื่อมต่อจาก client ใหม่
+                Socket client = sock.accept();
+                    System.out.println("New client connected: " + client.getInetAddress().getHostAddress());
+                    MyThread t = new MyThread(client);
+                    t.start(); // เริ่ม thread
+                
 
-            t1.start();
-            t2.start();
-            t3.start();
-            t4.start();
+        } }catch (IOException ioe) {
+            System.err.println("Server error: " + ioe.getMessage());
         }
-        catch(IOException ioe){
-			System.err.println(ioe);
-		}
     }
-    
 }
+

@@ -2,9 +2,7 @@
 import java.awt.image.*;
 import javax.imageio.ImageIO;
 
-import org.knowm.xchart.SwingWrapper;
-import org.knowm.xchart.XYChart;
-import org.knowm.xchart.XYChartBuilder;
+
 
 import java.io.File;
 import java.util.ArrayList;
@@ -16,7 +14,7 @@ import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.io.IOException;
 
 
-public class errdiff_pillow_match { 
+public class errdif{ 
     static ArrayList<Long> sequential_times = new ArrayList<>();
     static ArrayList<Long> parallel_times = new ArrayList<>();
     public static  byte[]   ErrordiffuseSequential(BufferedImage grayImage, BufferedImage outputImage, int width, int height) {
@@ -89,7 +87,6 @@ public class errdiff_pillow_match {
                 for (int y = startrow; y < endrow; y++) {
                     if(y>0){
                         while(rowcomplete.get(y-1) ==0){
-                            //busy wait
                             Thread.onSpinWait();
                         }
                     }  

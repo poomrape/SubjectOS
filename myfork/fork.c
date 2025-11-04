@@ -21,6 +21,6 @@ int main(){
 	for(i=0;i<10;i++){
 		wait(NULL);
 	}
-	printf("My Parents Terminated ");
+	printf("My Parents Terminated");
 }
 	
