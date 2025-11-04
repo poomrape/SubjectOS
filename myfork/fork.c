@@ -14,13 +14,13 @@ int main(){
 			printf("fork failed");
 
 		}else if(pids[i] ==0){
-			printf("My child number:%d\n",i);
+			printf("My child number:%d Processid : %d\n",i,getpid());
 			exit(0);
 		}
 	}
 	for(i=0;i<10;i++){
 		wait(NULL);
 	}
-	printf("My Parents Terminated");
+	printf("My Parents Terminated process ID: %d",getpid());
 }
 	
